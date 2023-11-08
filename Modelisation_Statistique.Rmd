@@ -1,0 +1,406 @@
+---
+title: "Modelisation Statistique."
+author: "BOUCHERRAB meziane ,DIALLO Abdoul "
+          
+date: "08/05/2022"
+output: pdf_document
+---
+
+##                Table Des Matières
+        1      Problématique   .............................................  2
+        2      Description du jeu de donné   ...............................  2
+            2.1     variables explicatives   ...............................  2
+            2.2     Analyse descriptives des variables   ...................  3
+        3   Régression linéaire multiple et sa validation  .................  4
+            3.1    Régression linéaire multiple   ..........................  4
+            3.2   Sélection des variables    ................................ 4
+            3.3    Analyse des résidus   ...................................  6
+      4    Analyse de la variance (ANOVA) ..................................  9
+\newpage
+
+```{r cars,include=FALSE, warning=FALSE}
+library(ggplot2)
+Donne<- read.table(file = "data.csv", sep = ",",header = TRUE,row.names=1)
+library(GGally)
+library(leaps)
+```
+**1 Problématique.**  
+
+
+   une agence de revente de voitures veut mettre en place une stratégie qui lui permettra d’améliorer sa compétitivité et ce en ayant le meilleur rapport qualité-prix, pour cela le directeur de l’agence veut comprendre
+la variabilité du prix en fonction des caractéristiques des véhicules pour maximiser la rentabilité de son
+activité, en se basant sur les données des véhicules vendus lors des 3 dernières années, le jeu de données a
+été donné par l'agance .
+  
+**2    Description du jeu de donné.**
+
+Le jeu de données comporte au total, 494 observations et 10 caractéristiques (variables);
+la colonne qui est la variable d'intérêt et **Prince Euro** c’est une variable quantitative continue c'est la variable à expliquer en fonction des autres variables qui représentent les caractéristiques des différents véhicules . L’ensemble de données n’inclut aucune valeur
+Manquante le jeu donné se compose principalement de données numériques.
+**2.1    Variables explicatives.**
+  
+
+Les variables suivantes sont les variables qu’on utilisera pour expliquer notre variable d’intérêt
+**Price_euro**   
+Qui est caractérisée de la sorte:
+
+```{r,echo=FALSE, warning=FALSE}
+summary(Donne$price_eur)
+```
+variance:
+
+```{r ,echo=FALSE, warning=FALSE, message=FALSE}
+v=var(Donne$price_eur)
+
+```
+On remarque que la variance **Var(price_euro)=83191802** est élevée donc il est suspectible que cette variable ait des valeurs aberrantes ou isolées.
+
+**-    Variables quantitatives**  
+  **continues**  
+•Mileage : Nombre de kilomètres parcourue par le véhicule.  
+•Manufacture_year : Année de première mise en circulation du véhicule.  
+•Engine_displacement : Cylindré du véhicule en CM³.  
+•Engin_Power : Puissance du véhicule en chevaux  
+
+  **discrétes**
+
+•door_count : Nombre de porte du véhicule.  
+•seat_count : Nombre de siège du véhicule.  
+**-    Variables qualitatives**  
+•Maker : la marque du véhicule  
+•Transmission : le type de transmission du véhicule "Manuelle-Automatique"  
+•fuel_type : Type du combustible compatible avec le moteur "Diesel-essence". 
+
+\newpage
+
+**2 .2     Analyse descriptive des variables**
+-Les données transmission et fuel_type sont des variables qualitatives on peut donc les enlever lors de notre première étude.  
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+
+ggpairs(Donne[, c(2:5,7,8, 10)])
+
+```
+**Analyse des données avec ggpairs.**   
+-On remarque  d'une part en regardant les nuages de points que les variables door_count et seat_count sont des variables quantitatives discrètes et d'autre part  que leurs corelations avec la variable 
+d'intérêt sont inférieurs à 0.1 donc elles sont moins corrélées avec la variable à expliquer.  
+-En regardant le nuage de points entre la variable **engine_power et engine_displacement** qui est presque aligné sur la première bissectrice donc elles paraient linéairement dependant et de même leur coefficient de corrélation qui est **0.9** nous le confirme.  
+-En regardant les nuages de points se **mileage, engin_power, manifacture_year et engine_dispolacement ** présente une forme allongée donc elles sont corrélées avec la variable **price_euro** , leurs coeficients de corrélations respectives **0.38,0.67,0.559,0.495** avec **price_euro** sont importantes donc cela confirme qu'elles sont bien corrélées avec notre variable d'intérêt. 
+
+\newpage
+
+**3. Régression linéaire multiple et son étape de validation**    
+**3.1 Régression linéaire multiple**
+```{r, echo=FALSE,size="huge", warning=FALSE, message=FALSE}
+#selection de variable et standardisation:
+Donne<-read.table(file = "data.csv", header = TRUE, sep = ",", row.names = 1)
+Donne<-Donne[c(-1,-6,-9)]
+Donne<-data.frame(scale(Donne))
+
+
+
+```
+
+On va effectuer une régression linéaire multiple avec toutes nos variables explicatives.
+On rappelle qu'on cherche à expliquer le **price_eur** .  
+
+```{r, echo=FALSE, size="huge", warning=FALSE, message=FALSE, message=FALSE}
+library(knitr)
+library(ggplot2)
+
+reg.mult<-lm(price_eur~., data=Donne)
+summary(reg.mult)
+```
+Le test de Fisher global **F-statistique=162.7** est significatif (la p-value est quasi nulle), donc on en conclut qu'il y a au moins une variable qui a un coefficient non nul.
+On constate que le test de nullité des coefficients est significatif  pour les variables:**Engine_power, manufacturing_year, mileage**, donc pour ces variables l'hypothèse nulle est rejetée et pour les variables **door_count, engine_displacement, seat_count** et la constante leurs **p_value > 0.01** donc on ne peut pas rejeter l'hypothèse nulle.
+**Le coefficient de détermination:**
+R²=0.6671 donc ces variables semblent  expliquer bien le modèle.
+poussons un peut notre études pour savoir le modéle le plus significatif à l'aide du critère BIC:  
+**3.2 La sélection des variables**  
+Le jeu de données contient de nombreuses variables explicatives et certaines sont fortement corrélées.
+Il est possible de faire un choix de modèle qui expliquerait le mieux notre variable.
+Pour se faire nous allons appliquer la fonction **regsubsets**  selon le coefficient **BIC** 
+Nous allons essayer de faire le **BIC** pour voir quel modèle présente un **BIC** minimale.
+```{r, echo=FALSE, fig.align='center', warning=FALSE, message=FALSE}
+library(leaps)
+choix<-regsubsets(price_eur~., data=Donne)
+choix.summary<-summary(choix)
+plot(choix, scale = "bic", main = "Regsubsets selon BIC")
+
+
+```
+On retient juste le modèle qui minimise le **BIC** donc on peut considérer le modèle avec les variables explicatives à savoir:  
+**engine_power**, **manifacturing_year**, **mileage** et bien sûr aussi avec la constante **intercep**pour  notre modèle.  
+Donc en ne conservant que ces variables, on obtient la régression suivante.    
+```{r, echo=FALSE, size="huge", warning=FALSE, message=FALSE}
+reg.mul1<-lm(Donne$price_eur~Donne$mileage+Donne$manufacture_year+Donne$engine_power)
+summary(reg.mul1)
+
+```
+Le test de Fisher global **F-statistique=322.1** est significatif pour le modéle choisi (la p-value est quasi nulle), donc on en conclut qu'il y a au moins une variable qui a un coefficient non nul.
+Ici on remarque que le test de nullité est significatif pour toutes les variables.    
+Le coefficient de détermination **Multiple R-squared:  0.6635** est élevé et presque égale au **Multiple R-squared:  0.6671** du modèle avec toutes les variables.  
+**3.3 Analyse des résidus**  
+Cette étape concerne la vérification des hypothèses énoncées sur l'erreur estimée.
+Il s'agit du test de normalité des résidus. La validation du modèle est attachée à l'idée selon laquelle les résidus sont indépendants et identiquement distribués suivant la loi normale centrée avec une variance constante.
+Cette hypothèse sera vérifiée à travers une représentation graphique des erreurs et de la densité de la loi normale.  
+**Résidus studentisées**
+```{r, echo=FALSE, fig.align='center', size="huge", warning=FALSE, message=FALSE, out.width='75%'}
+resi_mul<-rstudent(reg.mult)
+p=length(which(resi_mul>2))
+N=length(which(resi_mul<(-2)))
+n=length(Donne$price_eur)
+#je emts les résidus comme une dataframe
+df.resi_mul<-data.frame(residu=resi_mul)
+#je trace le nuage des résidus en fonction des indices
+p_r<-ggplot(data = df.resi_mul,aes(x=1:n,y=residu))+geom_point()
+p_r=p_r+geom_hline(yintercept = -2,col='blue', linetype=2)
+p_r=p_r+geom_hline(yintercept = 2,col='blue', linetype=2)
+p_r
+
+```
+le pourcentage de points en dehors de l'intervalle est : 
+
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+(p+N)*100/n
+```
+On constate qu'il y a peu de points qui sont en dehors de l'intervalle [-2,2], mais deux entre eux sont quand même loin des bornes.
+Mais quand même vu la taille de notre échantillon **n=494** donc on pourrait dire que c'est acceptable.  
+**Poussons plus loin notre analyse en regardant les points leviers.**    
+```{r, echo=FALSE, fig.align='center',size="huge", warning=FALSE, message=FALSE}
+#points leviers en utilisant leurs poids
+#clacul de la matrice H
+H<-hatvalues(reg.mult)
+p<-reg.mult$rank
+seuil1=2*p/n
+seuil2=3*p/n
+#je mets la matrice H sous forme de dataframe
+df.H<-data.frame(H=H)
+
+```
+
+**seuil 1=0.01619433**  
+**seuil 2=0.0242915**
+
+```{r, echo=FALSE, fig.align='center', size="huge",warning=FALSE, message=FALSE, out.width='75%'}
+#on recupère les points qui sont suspects
+resi_mul<-scale(resi_mul)*sqrt(2)
+df.resi_mul<-data.frame(residu=resi_mul)
+id_lev=(1:n)[df.H$H>seuil1]
+ID_levier <- (1:n)[df.H$H>seuil1]
+df.H$ID <- rep("",n)
+df.H[ID_levier,]$ID <- ID_levier
+df.H$group <- rep("Non levier",n)
+df.H[ID_levier,]$group <- "Levier"
+
+#faisons un graphe pour bien voir
+p_h<-ggplot(data = df.H, aes(x=1:n,y=H, color=df.H$group))+geom_point()
+p_h<-p_h+geom_hline(yintercept = seuil1,col="blue",linetype=2)
+p_h<-p_h+geom_hline(yintercept = seuil2,col="blue",linetype=2)
+p_h
+
+```
+On observe qu'il y'a 22 valeurs aberrantes dont 11 points levier (leurs poids dépassent le deuxième seuil) 
+pour nous assurer de l'influence des valeurs aberrante on regarde la distance de cook des  résidus.
+```{r, echo=FALSE, fig.align='center',size="huge", message=FALSE,out.width='75%'}
+#calcul de la distance de cook
+cook<-cooks.distance(reg.mult)
+#je mets la distance sous dataframe
+df.couk<-data.frame(cook=cook)
+#la quantile de loi de fisher(p,n-p) d'ordre 1/2 et d'ordre 0.1
+s1<-qf(0.5,p,n-p)
+s2<-qf(0.1,p,n-p)
+
+#cook <- data.frame(cook)
+#cook<-cook[df.couk<s1] 
+
+#df.couk<-df.couk[df.couk<s1] 
+#df.couk <- data.frame(df.couk)
+
+#df.couk<s1 
+
+p_ck<-ggplot(data = df.couk, aes(x=1:n,y=cook))+geom_point()
+p_ck<-p_ck+geom_hline(yintercept = s1,col="blue",linetype=2)
+p_ck<-p_ck+geom_hline(yintercept = s2, col="blue", linetype=3)
+p_ck<-p_ck+xlab('Indix')+ylab('Distance de cook')
+p_ck
+```
+Nous constatons qu'il y a deux points qui ont une distance de cook loin du deuxième seuil nous pouvons donc conclure que ces deux points influent sur la justesse du modéle on peut donc enlever les point 39 et 346 qui présentent un poids élevé.
+vérifions à présent que les résidus suivent une loi normale centrée.
+Pour se faire nous allons représenter l'histogramme des résidus que nous superposerons avec une densité d'une loi normale centrée réduite.
+```{r,echo=FALSE, fig.align='center', size="huge",message=FALSE,out.width='75%'}
+#hist(resi_mul, probability = TRUE, breaks = 80,main = "l'histogramme des résidus")
+#curve(dnorm(x,0,1), col="red", add = TRUE)
+H_r<-ggplot(data=df.resi_mul,)+aes(x=resi_mul)+geom_histogram(aes(y=..density..),bins=100)+ stat_function(fun = dnorm, args = list(mean = 0, 
+    sd = 1), col="red")
+H_r
+
+
+
+
+```
+En regardant l'histogramme on remarque une forte ressemblance avec un histogramme d'une loi symétrique.  
+Pour avoir plus de clarté nous allons y superposer la densité de la loi normale.
+On remarque l'allure d'une courbe de gaussienne centrée réduite de l'histogramme, donc on peut se dire qu'il y a adéquation du fait qu'on a supposé que les erreurs pourraient suivre une loi normale centrée.
+Pour pousser plus le test de normalité faisons un QQ_plot pour voir plus clair.
+
+
+```{r, echo=FALSE, fig.align='center',size="huge",message=FALSE, out.width='75%'}
+n=length(resi_mul)
+x=(1:n)/n
+quant.t <- qt((1:n)/n,n-p-1)
+df_qq <- data.frame(Obs = sort(df.resi_mul$residu), Theo = quant.t)
+qq.plot <-
+  ggplot(data = df_qq, aes(x = Obs, y = Theo)) + geom_point(shape = 1, size = 2.5)
+qq.plot <-
+  qq.plot + geom_abline(
+    slope = 1,
+    intercept = 0,
+    col = "blue",
+    linetype = 2,
+    size = 0.5
+  )
+qq.plot <- qq.plot + xlab("Quantiles empiriques des résidus") + ylab("Student T(n-p-1)")
+qq.plot
+
+```
+Nous observons que l'alignement des points sur la première bissectrice est acceptable sauf au niveau des queues où on voit une inclinaison dont **05 points de la droite** et **04 points de la gauche**, ce qui confirme l'hypothèse selon laquelle les résidus  théoriques $\varepsilon_i$ suivent la loi normale $\mathcal N(0,\sigma^2)$  
+
+\newpage
+
+**4. Analyse de la variance**  
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+Donne<-read.table(file = "data.csv", header = TRUE, sep = ",", row.names = 1)
+qual<-Donne[,c(1,6,9,10)]
+qual$maker<-as.factor(qual$maker)
+qual$transmission<-as.factor(qual$transmission)
+qual$fuel_type<-as.factor(qual$fuel_type)
+```
+Comme notre jeu de données ne contient pas que de variables quantitatives, il contient aussi des variables qualitatives qui sont maker, transmission et fuel_type. Nous allons nous intérésser à leurs effets sur notre variable d'intérêt.    
+Donc nous allons faire une **ANOVA** avec un modèle à trois facteurs .
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+qual$maker<-relevel(qual$maker, ref = "ford")
+mod<-lm(qual$price_eur~qual$maker+qual$transmission+qual$fuel_type)
+summary(mod)
+
+
+```
+
+\newpage
+
+On constate ici les effets globaux de chaque facteur. La variables marque **maker** est codé par **R** en 27 variables binaires et nous avons choisi comme modalité de référence **ford** donc on interprète l'effet des autres par rapport à celui de ford .   
+On voit par exemple que  que la marque **makeraudi** en moyenne influence  8255.47 de plus que **ford** sur le prix et la p_value est quasi nulle donc on rejette l'hypothèse selon laquelle elle a même effet que la marque **ford** sur le prix.  
+La marque **jeep** influence en moyenne **-4409.53** moins que **ford** sur le prix mais on voit que le test de nullité est signicatif ce qui veut dire qu'il a même effet que **ford** sur le prix.  
+La variable  **transmisson man**  influence en moyenne **-7751.01** moins que la variable **transmission aut** sur le prix et aussi le test de nullité est quasi nul donc son effet est different de celui de la transmission automatique.  
+La variable **fuel_type gasoline** influence en moyenne **-2224.91** moins que le **fuel_typediesel** sur le prix et le test de nullité est inférieur à **0.01** donc leurs effefs sont quasiment égaux. 
+Ici l'étude n'est pas trop claire car on aimerait bien voir les effets principaux des variables à savoir **maker, fuel_type et transmission sur le prix en euro**, donc pour se faire nous allons utiliser la fonction **anova** de R.  
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+anova(mod)
+
+```
+Nous constatons que la variable marque **maker** a une **p_valu =6.609e-15 qui est nulle** donc elle a un effet principal sur le prix.  
+La variable transmission a une **p_value=2.900e-10 qui est nulle** donc elle a un effet principal sur le prix.  
+La variable fuel_type a une **p_value=0.003592>0.001** donc on peut dire que cette variable n'a pas d'effet principal sur le prix.
+La marque et le mode de transmission ont des effets principaux sur le prix mais par contre le type de carburant n'a pas un effet principal sur le prix. Mais cela ne veut pas dire qu'il ne peut avoir d'effet d'interaction. Nous allons à présent voir les effets interactions.
+
+\newpage
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+modint<-lm(qual$price_eur~qual$maker*qual$transmission*qual$fuel_type)
+anova(modint)
+
+```
+On constate que l'effet d'interaction entre la marque **maker** et le type de carburant **fuel_type** a une *p_value=1.225e-09 << 0.001* donc il y a bel et bien effet d'interaction.
+L'effet interaction entre **fuel_type, maker et transmission** a une **p_value=2.827e-05 << 0.001** donc il y a bien un effet d'interaction entre les trois variables donc on considère le modèle avec les trois variables.  
+**Analyse des résidus**
+```{r, echo=FALSE, warning=FALSE, fig.align='center', warning=FALSE, message=FALSE,out.width='75%'}
+
+residus <- rstudent(modint)
+n <-length(qual$maker)
+df.residu <- data.frame(residu = residus)
+plot2 <- ggplot(data = df.residu) + aes(x=1:n, y = residu) + geom_point()
+plot2 <- plot2 + geom_hline(yintercept = -2, col = "blue", linetype = 2)
+plot2 <- plot2 + geom_hline(yintercept = 2, col = "blue", linetype = 2)
+plot2 <- plot2 + xlab('Index') + ylab('Résidus studentisés')
+plot2
+```
+```{r, echo=FALSE,warning=FALSE, message=FALSE}
+r1=length(which(residus>2))
+r2=length(which(residus<(-2)))
+((r1+r2)*100)/n
+
+
+```
+On remarque que **2.631579%** des points qui sont en dehors de l'intervalle $[-2,2]$ ce qui inférieur à 5% donc acceptables.Nous allons regarder les points leviers.
+```{r, echo=FALSE, warning=FALSE, fig.align='center',message=FALSE, out.width='75%'}
+levier <- hatvalues(modint)
+p <- modint$rank
+seuil1 <- 2*p/n
+seuil2 <- 3*p/n
+df.H <- data.frame(H = levier)
+ID_levier <- (1:n)[df.H$H>seuil1]
+df.H$ID <- rep("",n)
+df.H[ID_levier,]$ID <- ID_levier
+df.H$group <- rep("Non levier",n)
+df.H[ID_levier,]$group <- "Levier"
+
+
+plot3 <- ggplot(data = df.H) + aes(x=1:n, y = H, color=group) + geom_point()
+plot3 <- plot3 + geom_hline(yintercept = seuil1, col = "blue", linetype = 2)
+plot3 <- plot3 + geom_hline(yintercept = seuil2, col = "blue", linetype = 3)
+plot3 <- plot3 + geom_text(aes(label=ID),hjust=0, vjust=0)
+plot3 <- plot3 + xlab('Index') + ylab('hii')
+plot3
+length(which(residus>seuil1))
+length(which(residus>seuil2))
+
+
+
+```
+On observe qu'il y'a 57 valeurs aberrantes dont 32 points levier (leurs poids dépassent le deuxième seuil) 
+pour nous assurer de l'influence des valeurs aberrante on regarde la distance de cook des résidus.
+
+```{r,echo=FALSE,warning=FALSE, fig.align='center',message=FALSE,out.width='75%'}
+df.cook <- data.frame(cook = cooks.distance(modint))
+s1 <- qf(0.5,p,n-p)
+s2 <- qf(0.1,p,n-p)
+plot4 <- ggplot(data = df.cook) + aes(x=1:n, y = cook) + geom_point()
+plot4 <- plot4 + geom_hline(yintercept = s1, col = "blue", linetype = 2)
+plot4 <- plot4 + geom_hline(yintercept = s2, col = "blue", linetype = 3)
+plot4 <- plot4 + xlab('Index') + ylab('Distance de Cook')
+plot4
+```
+On constate qu'aucun point ne dépasse le premier seuil donc il n'y a pas de valeurs aberrantes, nous pouvons garder toutes les variables à savoir **maker, fuel_type,transmission**.  
+vérifions à présent que les résidus suivent une loi normale centrée.
+Pour se faire nous allons représenter l'histogramme des résidus que nous superposerons avec une densité d'une loi normale centrée réduite.
+```{r, echo=FALSE,warning=FALSE, fig.align='center',message=FALSE, out.width='75%'}
+df.residus<-data.frame(residu=residus)
+length(sort(df.residus$residu))
+H_r<-ggplot(data=df.residus,)+aes(x=residu)+geom_histogram(aes(y=..density..),bins=100)+ stat_function(fun = dnorm, args = list(mean = 0, 
+    sd = 1), col="red")
+H_r
+
+```
+On voit que l'histogramme des résidus a la forme d'une dansité gaussienne centrée. Pour voir plus clair faisons un qqplot.
+
+```{r, echo=FALSE, warning=FALSE, fig.align='center',message=FALSE, out.width='75%'}
+n=length(residus)
+quant.t <- qt((1:n)/n,n-p-1)
+
+df_qq <- data.frame(Obs = df.residus$residu[order(df.residus$residu)], Theo = quant.t)
+qq.plot <-ggplot(data = df_qq, aes(x = Obs, y = Theo)) + geom_point(shape = 1, size = 2.5)
+qq.plot <-qq.plot + geom_abline(
+    slope = 1,
+    intercept = 0,
+    col = "blue",
+    linetype = 2,
+    size = 0.5
+  )
+qq.plot <- qq.plot + xlab("Quantiles empiriques des résidus") + ylab("Student T(n-p-1)")
+qq.plot
+
+```
+On remarque que l'alignement des points par rapport à la première bissectrice est acceptable sauf au niveaux des queues où l'on remarque une forte inclinaison. Nous pouvons conclure que que notre hypothèse selon laquelle les erreurs théoriques suivent une lois normale centrée avec une variance constante ( $\epsilon_i\sim\mathcal{N}(0,\sigma^2)$)
+Donc on peut conclure qu'on peut garder toutes les variables qualitatives dans notre modèle.
+
